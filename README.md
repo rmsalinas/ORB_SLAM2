@@ -1,4 +1,9 @@
-# ORB-SLAM2
+# Sequential ORB-SLAM2
+
+This is fork allows to run ORB-SLAM2 in sequential mode from a video and a opencv calibration file. To do so, first we include a new program that reads from Video files, and converts opencv calibration files into the ORB-SLAM2 config file.
+Second, we have included into the program a set of mutexes that prevents the parallel execution of the different threads (Tracking,Mapping,LoopClosing). 
+
+#  ORB-SLAM2
 **Authors:** [Raul Mur-Artal](http://webdiis.unizar.es/~raulmur/), [Juan D. Tardos](http://webdiis.unizar.es/~jdtardos/), [J. M. M. Montiel](http://webdiis.unizar.es/~josemari/) and [Dorian Galvez-Lopez](http://doriangalvez.com/) ([DBoW2](https://github.com/dorian3d/DBoW2))
 
 **13 Jan 2017**: OpenCV 3 and Eigen 3.3 are now supported.
