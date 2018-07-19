@@ -56,6 +56,9 @@ public:
 
     void Release();
 
+
+    char lasKeyPreseed=0;
+    bool isPaused=false;
 private:
 
     bool Stop();

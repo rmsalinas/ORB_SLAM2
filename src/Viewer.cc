@@ -20,8 +20,9 @@
 
 #include "Viewer.h"
 #include <pangolin/pangolin.h>
-
+#include <unistd.h>
 #include <mutex>
+#include "Sequential.h"
 
 namespace ORB_SLAM2
 {
@@ -136,7 +137,9 @@ void Viewer::Run()
 
         cv::Mat im = mpFrameDrawer->DrawFrame();
         cv::imshow("ORB-SLAM2: Current Frame",im);
-        cv::waitKey(mT);
+        int key=cv::waitKey(mT);
+        if(key=='s')
+            Sequential::_playNFFlag=!Sequential::_playNFFlag;
 
         if(menuReset)
         {

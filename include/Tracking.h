@@ -52,7 +52,6 @@ class System;
 
 class Tracking
 {  
-
 public:
     Tracking(System* pSys, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap,
              KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor);
@@ -76,6 +75,7 @@ public:
 
 
 public:
+    mutex trackingMutex;
 
     // Tracking states
     enum eTrackingState{
@@ -118,7 +118,7 @@ public:
 protected:
 
     // Main tracking function. It is independent of the input sensor.
-    void Track();
+    bool Track();
 
     // Map initialization for stereo and RGB-D
     void StereoInitialization();
@@ -142,7 +142,7 @@ protected:
     void SearchLocalPoints();
 
     bool NeedNewKeyFrame();
-    void CreateNewKeyFrame();
+    bool CreateNewKeyFrame();
 
     // In case of performing only localization, this flag is true when there are no matches to
     // points in the map. Still tracking will continue if there are enough matches with temporal points.

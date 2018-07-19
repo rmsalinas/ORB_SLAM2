@@ -48,9 +48,10 @@ public:
     typedef pair<set<KeyFrame*>,int> ConsistentGroup;    
     typedef map<KeyFrame*,g2o::Sim3,std::less<KeyFrame*>,
         Eigen::aligned_allocator<std::pair<const KeyFrame*, g2o::Sim3> > > KeyFrameAndPose;
-
+bool useless=false;
 public:
 
+    void SetUseless(){useless=true;}
     LoopClosing(Map* pMap, KeyFrameDatabase* pDB, ORBVocabulary* pVoc,const bool bFixScale);
 
     void SetTracker(Tracking* pTracker);
@@ -60,7 +61,7 @@ public:
     // Main function
     void Run();
 
-    void InsertKeyFrame(KeyFrame *pKF);
+    bool InsertKeyFrame(KeyFrame *pKF);
 
     void RequestReset();
 

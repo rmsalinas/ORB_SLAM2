@@ -122,6 +122,10 @@ public:
     std::vector<MapPoint*> GetTrackedMapPoints();
     std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
 
+    Viewer* getViewer(){return mpViewer;}
+
+    void forceLost();
+    void disableLoopClosure();
 private:
 
     // Input sensor

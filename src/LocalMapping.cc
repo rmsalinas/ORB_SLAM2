@@ -22,8 +22,10 @@
 #include "LoopClosing.h"
 #include "ORBmatcher.h"
 #include "Optimizer.h"
+#include <unistd.h>
 
 #include<mutex>
+#include "Sequential.h"
 
 namespace ORB_SLAM2
 {
@@ -84,7 +86,12 @@ void LocalMapping::Run()
                 KeyFrameCulling();
             }
 
-            mpLoopCloser->InsertKeyFrame(mpCurrentKeyFrame);
+            Sequential::loopClosingClear();
+            if( mpLoopCloser->InsertKeyFrame(mpCurrentKeyFrame)){
+                Sequential::waitForEndLoopClosing();
+            }
+            if (!CheckNewKeyFrames())
+                Sequential::endLocalMapping();
         }
         else if(Stop())
         {
@@ -449,6 +456,7 @@ void LocalMapping::CreateNewMapPoints()
             nnew++;
         }
     }
+    cout<<"Added "<<nnew<<" new map points "<<endl;
 }
 
 void LocalMapping::SearchInNeighbors()

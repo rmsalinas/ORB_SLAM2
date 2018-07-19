@@ -185,6 +185,8 @@ void Optimizer::BundleAdjustment(const vector<KeyFrame *> &vpKFs, const vector<M
 
     // Optimize!
     optimizer.initializeOptimization();
+    optimizer.setVerbose(true);
+    cout<<"BUNDLE ADJUSTMENT"<<endl;
     optimizer.optimize(nIterations);
 
     // Recover optimized data
@@ -238,6 +240,7 @@ void Optimizer::BundleAdjustment(const vector<KeyFrame *> &vpKFs, const vector<M
 
 int Optimizer::PoseOptimization(Frame *pFrame)
 {
+    cout<<"POSE OPTIMIZATION"<<endl;
     g2o::SparseOptimizer optimizer;
     g2o::BlockSolver_6_3::LinearSolverType * linearSolver;
 
@@ -376,6 +379,7 @@ int Optimizer::PoseOptimization(Frame *pFrame)
 
         vSE3->setEstimate(Converter::toSE3Quat(pFrame->mTcw));
         optimizer.initializeOptimization(0);
+        optimizer.setVerbose(true);
         optimizer.optimize(its[it]);
 
         nBad=0;
@@ -657,6 +661,8 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
             return;
 
     optimizer.initializeOptimization();
+    optimizer.setVerbose(true);
+    cout<<"LOCAL BUNDLE ADJUSTMENT"<<endl;
     optimizer.optimize(5);
 
     bool bDoMore= true;
@@ -704,6 +710,8 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
     // Optimize again without the outliers
 
     optimizer.initializeOptimization(0);
+    optimizer.setVerbose(true);
+    cout<<"LOCAL BUNDLE ADJUSTMENT 2"<<endl;
     optimizer.optimize(10);
 
     }
@@ -984,6 +992,8 @@ void Optimizer::OptimizeEssentialGraph(Map* pMap, KeyFrame* pLoopKF, KeyFrame* p
 
     // Optimize!
     optimizer.initializeOptimization();
+    optimizer.setVerbose(true);
+    cout<<" ESSENTIAL GRAPH OPT"<<endl;
     optimizer.optimize(20);
 
     unique_lock<mutex> lock(pMap->mMutexMapUpdate);
@@ -1179,6 +1189,8 @@ int Optimizer::OptimizeSim3(KeyFrame *pKF1, KeyFrame *pKF2, vector<MapPoint *> &
 
     // Optimize!
     optimizer.initializeOptimization();
+    optimizer.setVerbose(true);
+    cout<<" OptimizeSim3 "<<endl;
     optimizer.optimize(5);
 
     // Check inliers
@@ -1214,6 +1226,8 @@ int Optimizer::OptimizeSim3(KeyFrame *pKF1, KeyFrame *pKF2, vector<MapPoint *> &
     // Optimize again only with inliers
 
     optimizer.initializeOptimization();
+    optimizer.setVerbose(true);
+    cout<<" OptimizeSim3 (2)"<<endl;
     optimizer.optimize(nMoreIterations);
 
     int nIn = 0;

@@ -28,7 +28,7 @@
 #include "Thirdparty/DBoW2/DBoW2/FeatureVector.h"
 
 #include<stdint-gcc.h>
-
+#include "hash.h"
 using namespace std;
 
 namespace ORB_SLAM2
@@ -404,7 +404,10 @@ int ORBmatcher::SearchByProjection(KeyFrame* pKF, cv::Mat Scw, const vector<MapP
 
 int ORBmatcher::SearchForInitialization(Frame &F1, Frame &F2, vector<cv::Point2f> &vbPrevMatched, vector<int> &vnMatches12, int windowSize)
 {
-    int nmatches=0;
+    ucoslam::Hash Hf1,Hf2;
+    Hf1+=F1.mDescriptors;
+    Hf2+=F2.mDescriptors;
+     int nmatches=0;
     vnMatches12 = vector<int>(F1.mvKeysUn.size(),-1);
 
     vector<int> rotHist[HISTO_LENGTH];

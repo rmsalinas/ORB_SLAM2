@@ -42,6 +42,7 @@ class Frame;
 class KeyFrameDatabase
 {
 public:
+    bool disabled=false;
 
     KeyFrameDatabase(const ORBVocabulary &voc);
 

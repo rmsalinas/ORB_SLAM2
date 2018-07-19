@@ -23,16 +23,16 @@
 
 #include<opencv2/core/core.hpp>
 #include<opencv2/features2d/features2d.hpp>
-
+#include <unistd.h>
 #include"ORBmatcher.h"
 #include"FrameDrawer.h"
 #include"Converter.h"
 #include"Map.h"
 #include"Initializer.h"
-
+#include "Sequential.h"
 #include"Optimizer.h"
 #include"PnPsolver.h"
-
+#include "Sequential.h"
 #include<iostream>
 
 #include<mutex>
@@ -259,13 +259,16 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
     else
         mCurrentFrame = Frame(mImGray,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
 
-    Track();
+    Sequential::localMappingClear();
+    if( Track())
+        Sequential::waitForEndLocalMapping();
 
     return mCurrentFrame.mTcw.clone();
 }
 
-void Tracking::Track()
+bool Tracking::Track()
 {
+    bool HasAddedFrame=false;
     if(mState==NO_IMAGES_YET)
     {
         mState = NOT_INITIALIZED;
@@ -286,7 +289,8 @@ void Tracking::Track()
         mpFrameDrawer->Update(this);
 
         if(mState!=OK)
-            return;
+            return false;
+        else return true;
     }
     else
     {
@@ -296,6 +300,7 @@ void Tracking::Track()
         // Initial camera pose estimation using motion model or relocalization (if tracking is lost)
         if(!mbOnlyTracking)
         {
+
             // Local Mapping is activated. This is the normal behaviour, unless
             // you explicitly activate the "only tracking" mode.
 
@@ -454,8 +459,9 @@ void Tracking::Track()
             mlpTemporalPoints.clear();
 
             // Check if we need to insert a new keyframe
-            if(NeedNewKeyFrame())
-                CreateNewKeyFrame();
+            if(NeedNewKeyFrame()){
+                HasAddedFrame= CreateNewKeyFrame();
+            }
 
             // We allow points with high innovation (considererd outliers by the Huber Function)
             // pass to the new keyframe, so that bundle adjustment will finally decide
@@ -475,7 +481,7 @@ void Tracking::Track()
             {
                 cout << "Track lost soon after initialisation, reseting..." << endl;
                 mpSystem->Reset();
-                return;
+                return HasAddedFrame;
             }
         }
 
@@ -502,6 +508,7 @@ void Tracking::Track()
         mlFrameTimes.push_back(mlFrameTimes.back());
         mlbLost.push_back(mState==LOST);
     }
+    return HasAddedFrame;
 
 }
 
@@ -557,6 +564,7 @@ void Tracking::StereoInitialization()
         mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.mTcw);
 
         mState=OK;
+
     }
 }
 
@@ -613,6 +621,7 @@ void Tracking::MonocularInitialization()
 
         if(mpInitializer->Initialize(mCurrentFrame, mvIniMatches, Rcw, tcw, mvIniP3D, vbTriangulated))
         {
+
             for(size_t i=0, iend=mvIniMatches.size(); i<iend;i++)
             {
                 if(mvIniMatches[i]>=0 && !vbTriangulated[i])
@@ -1060,10 +1069,10 @@ bool Tracking::NeedNewKeyFrame()
         return false;
 }
 
-void Tracking::CreateNewKeyFrame()
+bool Tracking::CreateNewKeyFrame()
 {
     if(!mpLocalMapper->SetNotStop(true))
-        return;
+        return false;
 
     KeyFrame* pKF = new KeyFrame(mCurrentFrame,mpMap,mpKeyFrameDB);
 
@@ -1138,6 +1147,7 @@ void Tracking::CreateNewKeyFrame()
 
     mnLastKeyFrameId = mCurrentFrame.mnId;
     mpLastKeyFrame = pKF;
+    return true;
 }
 
 void Tracking::SearchLocalPoints()

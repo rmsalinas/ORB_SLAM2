@@ -27,11 +27,10 @@
 #include "Optimizer.h"
 
 #include "ORBmatcher.h"
-
-#include<mutex>
-#include<thread>
-
-
+#include <unistd.h>
+#include <mutex>
+#include <thread>
+#include "Sequential.h"
 namespace ORB_SLAM2
 {
 
@@ -66,15 +65,19 @@ void LoopClosing::Run()
             // Detect loop candidates and check covisibility consistency
             if(DetectLoop())
             {
+                cout<<"LOOP CLOSURE ANALYZED!!!"<<endl;
                // Compute similarity transformation [sR|t]
                // In the stereo/RGBD case s=1
                if(ComputeSim3())
                {
+                   cout<<"LOOP CLOSURE Corrected!!!"<<endl;
+
                    // Perform loop fusion and pose graph optimization
                    CorrectLoop();
                }
             }
-        }       
+            Sequential::endLoopClosing();
+        }
 
         ResetIfRequested();
 
@@ -87,11 +90,14 @@ void LoopClosing::Run()
     SetFinish();
 }
 
-void LoopClosing::InsertKeyFrame(KeyFrame *pKF)
+bool LoopClosing::InsertKeyFrame(KeyFrame *pKF)
 {
     unique_lock<mutex> lock(mMutexLoopQueue);
-    if(pKF->mnId!=0)
+    if(pKF->mnId!=0){
         mlpLoopKeyFrameQueue.push_back(pKF);
+        return true;
+    }
+    else return false;
 }
 
 bool LoopClosing::CheckNewKeyFrames()
@@ -221,6 +227,7 @@ bool LoopClosing::DetectLoop()
     }
     else
     {
+
         return true;
     }
 
@@ -405,8 +412,9 @@ void LoopClosing::CorrectLoop()
 
     // Send a stop signal to Local Mapping
     // Avoid new keyframes are inserted while correcting the loop
-    mpLocalMapper->RequestStop();
+//    mpLocalMapper->RequestStop();
 
+    cout<<"LoopClosing 1"<<endl;
     // If a Global Bundle Adjustment is running, abort it
     if(isRunningGBA())
     {
@@ -421,15 +429,18 @@ void LoopClosing::CorrectLoop()
             delete mpThreadGBA;
         }
     }
+    cout<<"LoopClosing 2"<<endl;
 
     // Wait until Local Mapping has effectively stopped
-    while(!mpLocalMapper->isStopped())
-    {
-        usleep(1000);
-    }
+//    while(!mpLocalMapper->isStopped())
+//    {
+//        usleep(1000);
+//    }
+    cout<<"LoopClosing 3"<<endl;
 
     // Ensure current keyframe is updated
     mpCurrentKF->UpdateConnections();
+    cout<<"LoopClosing 4"<<endl;
 
     // Retrive keyframes connected to the current keyframe and compute corrected Sim3 pose by propagation
     mvpCurrentConnectedKFs = mpCurrentKF->GetVectorCovisibleKeyFrames();
@@ -439,6 +450,7 @@ void LoopClosing::CorrectLoop()
     CorrectedSim3[mpCurrentKF]=mg2oScw;
     cv::Mat Twc = mpCurrentKF->GetPoseInverse();
 
+    cout<<"LoopClosing 5"<<endl;
 
     {
         // Get Map Mutex
@@ -514,6 +526,7 @@ void LoopClosing::CorrectLoop()
             // Make sure connections are updated
             pKFi->UpdateConnections();
         }
+        cout<<"LoopClosing 6"<<endl;
 
         // Start Loop Fusion
         // Update matched map points and replace if duplicated
@@ -535,12 +548,14 @@ void LoopClosing::CorrectLoop()
         }
 
     }
+    cout<<"LoopClosing 7"<<endl;
 
     // Project MapPoints observed in the neighborhood of the loop keyframe
     // into the current keyframe and neighbors using corrected poses.
     // Fuse duplications.
     SearchAndFuse(CorrectedSim3);
 
+    cout<<"LoopClosing 8"<<endl;
 
     // After the MapPoint fusion, new links in the covisibility graph will appear attaching both sides of the loop
     map<KeyFrame*, set<KeyFrame*> > LoopConnections;
@@ -562,11 +577,14 @@ void LoopClosing::CorrectLoop()
             LoopConnections[pKFi].erase(*vit2);
         }
     }
+    cout<<"LoopClosing 9"<<endl;
 
     // Optimize graph
     Optimizer::OptimizeEssentialGraph(mpMap, mpMatchedKF, mpCurrentKF, NonCorrectedSim3, CorrectedSim3, LoopConnections, mbFixScale);
+    cout<<"LoopClosing 10"<<endl;
 
     mpMap->InformNewBigChange();
+    cout<<"LoopClosing 11"<<endl;
 
     // Add loop edge
     mpMatchedKF->AddLoopEdge(mpCurrentKF);
@@ -576,12 +594,17 @@ void LoopClosing::CorrectLoop()
     mbRunningGBA = true;
     mbFinishedGBA = false;
     mbStopGBA = false;
+    cout<<"LoopClosing 12"<<endl;
     mpThreadGBA = new thread(&LoopClosing::RunGlobalBundleAdjustment,this,mpCurrentKF->mnId);
 
+    cout<<"LoopClosing 13"<<endl;
     // Loop closed. Release Local Mapping.
     mpLocalMapper->Release();    
 
-    mLastLoopKFid = mpCurrentKF->mnId;   
+    cout<<"LoopClosing 14"<<endl;
+    mLastLoopKFid = mpCurrentKF->mnId;
+    cout<<"LoopClosing 15"<<endl;
+
 }
 
 void LoopClosing::SearchAndFuse(const KeyFrameAndPose &CorrectedPosesMap)
