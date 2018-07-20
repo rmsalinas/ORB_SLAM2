@@ -403,9 +403,6 @@ int ORBmatcher::SearchByProjection(KeyFrame* pKF, cv::Mat Scw, const vector<MapP
 
 int ORBmatcher::SearchForInitialization(Frame &F1, Frame &F2, vector<cv::Point2f> &vbPrevMatched, vector<int> &vnMatches12, int windowSize)
 {
-    ucoslam::Hash Hf1,Hf2;
-    Hf1+=F1.mDescriptors;
-    Hf2+=F2.mDescriptors;
      int nmatches=0;
     vnMatches12 = vector<int>(F1.mvKeysUn.size(),-1);
 
