@@ -10,8 +10,11 @@ namespace ORB_SLAM2
 {
 
 class Sequential{
+   static bool _enabled;
   public:
 
+
+    static void enable(bool v){_enabled=v;}
 
 
 

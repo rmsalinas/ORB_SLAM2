@@ -28,7 +28,7 @@ void ctrl_c_signal(int s){
 }
 void savePosesToFile(string filename, const std::map<int, cv::Mat>& fmp);
 
-void createYMLfromOpencvCamera(string opencv_camerafile,string orb2configfile  ,cv::Size outputSize=cv::Size(-1,-1)){
+void createYMLfromOpencvCamera(string opencv_camerafile,string orb2configfile  ,float scaleFactor=1){
 
     cv::FileStorage infile;
     infile.open(opencv_camerafile,cv::FileStorage::READ);
@@ -50,14 +50,14 @@ void createYMLfromOpencvCamera(string opencv_camerafile,string orb2configfile  ,
 
 
     //change params if size modified
-    if (outputSize.width>0){
-        float scalex=float(outputSize.width)/float(img_width);
-        float scaley=float(outputSize.height)/float(img_height);
-        cout<<scalex<<" "<<scaley<<endl;
-        cameraMatrix32.at<float>(0,0)*=scalex;
-        cameraMatrix32.at<float>(0,2)*=scalex;
-        cameraMatrix32.at<float>(1,1)*=scaley;
-        cameraMatrix32.at<float>(1,2)*=scaley;
+    cv::Size outputSize;
+    if (scaleFactor!=1){
+        outputSize.width=img_width*scaleFactor;
+        outputSize.height=img_height*scaleFactor;
+         cameraMatrix32.at<float>(0,0)*=scaleFactor;
+        cameraMatrix32.at<float>(0,2)*=scaleFactor;
+        cameraMatrix32.at<float>(1,1)*=scaleFactor;
+        cameraMatrix32.at<float>(1,2)*=scaleFactor;
     }
 
     ofstream ofile(orb2configfile);
@@ -103,11 +103,13 @@ cv::Size parseSize(string str){
     return wh;
 }
 
-cv::Mat resizeInput(cv::Mat &in,cv::Size outsize){
-    if (outsize.width<=0)return in;
+cv::Mat resizeInput(cv::Mat &in,float scaleFactor=1.0){
+    if (scaleFactor==1)return in;
     else{
         cv::Mat ret;
-        cv::resize(in,ret,outsize);
+        cv::Size outSize(in.cols*scaleFactor,in.rows*scaleFactor);
+        cv::resize(in,ret,outSize);
+        cout<<"outSize="<<outSize<<endl;
         return ret;
     }
 
@@ -126,12 +128,12 @@ int main(int argc, char **argv)
         CmdLineParser cml(argc,argv);
         if(argc <5 || cml["-h"])
         {
-            cerr << endl << "Usage: ./mono_tum     videofile  cameraparams.yml path_to_vocabulary outposes  [-skip nframes] [-realtime] [-noX] [-sleep x]"  << endl;
+            cerr << endl << "Usage: ./mono_tum     videofile  cameraparams.yml path_to_vocabulary outposes  [-skip nframes] [-sequential] [-noX] [-sleep x] [-sf <float> scale factor]"  << endl;
             return 1;
         }
-        cv::Size outSize(-1,-1);
+        float scaleFactor=stof(cml("-sf","1.0"));
         string OrbConfigFile="orbfile"+random_string(8)+".yml";
-        createYMLfromOpencvCamera(argv[2],OrbConfigFile,outSize);
+        createYMLfromOpencvCamera(argv[2],OrbConfigFile,scaleFactor);
         // Create SLAM system. It initializes all system threads and gets ready to process frames.
         ORB_SLAM2::System SLAM(argv[3],OrbConfigFile,ORB_SLAM2::System::MONOCULAR, !cml["-noX"]);
         cv::VideoCapture camera;
@@ -139,7 +141,7 @@ int main(int argc, char **argv)
         cv::Mat im;
         
         int sleepBetweenImages=stoi(cml("-sleep","200"));
-        if(cml["-realtime"]) sleepBetweenImages=0;
+        if(cml["-sequential"]) ORB_SLAM2::Sequential::enable(true);
         // Main loop
         signal(SIGINT,ctrl_c_signal);
 
@@ -158,7 +160,7 @@ int main(int argc, char **argv)
                 if ( !camera.grab() )break;
                 cout<<"Image "<<frameIndx<<endl;
                 camera.retrieve(im);
-                im=resizeInput(im,outSize);
+                im=resizeInput(im,scaleFactor);
                 // Pass the image to the SLAM system
                 std::chrono::high_resolution_clock::time_point  start=  std::chrono::high_resolution_clock::now();
 
@@ -188,7 +190,7 @@ int main(int argc, char **argv)
 
         while(camera.grab()){
             camera.retrieve(im);
-            im=resizeInput(im,outSize);
+            im=resizeInput(im,scaleFactor);
             // Pass the image to the SLAM system
             int frameIndx= camera.get(CV_CAP_PROP_POS_FRAMES)-1;
             cv::Mat pose=SLAM.TrackMonocular(im,frameIndx);
