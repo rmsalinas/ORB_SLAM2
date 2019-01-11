@@ -128,7 +128,7 @@ int main(int argc, char **argv)
         CmdLineParser cml(argc,argv);
         if(argc <5 || cml["-h"])
         {
-            cerr << endl << "Usage: ./mono_tum     videofile  cameraparams.yml path_to_vocabulary outposes  [-skip nframes] [-sequential] [-noX] [-sleep x] [-sf <float> scale factor]"  << endl;
+            cerr << endl << "Usage: ./mono_tum     videofile  cameraparams.yml path_to_vocabulary outposes  [-skip nframes] [-sequential] [-noX] [-sleep x] [-sf <float> scale factor] [-end Frame]"  << endl;
             return 1;
         }
         float scaleFactor=stof(cml("-sf","1.0"));
@@ -154,6 +154,10 @@ int main(int argc, char **argv)
 
         if (!camera.isOpened()) throw std::runtime_error("Could not open source ");
         cout<<"Video 1 opened"<<endl;
+        if(cml["-timefile"]){
+            string commd="date > "+cml("-timefile");
+            system(commd.c_str());
+        }
         while(!stopCapture){
 
             if(ORB_SLAM2::Sequential::playNextFrame()){
@@ -171,6 +175,15 @@ int main(int argc, char **argv)
                     cerr<<"Tracking successfull "<<frameIndx<<endl;
             }
             else{ std::this_thread::sleep_for(std::chrono::milliseconds(100));}
+
+            if(cml["-end"]){
+                if( camera.get(CV_CAP_PROP_POS_FRAMES)>=stoi(cml("-end")))
+                break;
+            }
+        }
+        if(cml["-timefile"]){
+            string commd="date >> "+cml("-timefile");
+            system(commd.c_str());
         }
         camera.release();
         if (stopCapture) return -1;
@@ -199,9 +212,17 @@ int main(int argc, char **argv)
             if (!pose.empty())
                 poses.insert({frameIndx,pose.inv()});
             frameIndx++;
+
+            if(cml["-end"]){
+                if( camera.get(CV_CAP_PROP_POS_FRAMES)>=stoi(cml("-end")))
+                break;
+            }
         }
 
-
+        if(cml["-timefile"]){
+            string commd="date >> "+cml("-timefile");
+            system(commd.c_str());
+        }
 
         // Stop all threads
         SLAM.Shutdown();
