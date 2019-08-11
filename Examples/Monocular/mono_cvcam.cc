@@ -158,6 +158,7 @@ int main(int argc, char **argv)
             string commd="date > "+cml("-timefile");
             system(commd.c_str());
         }
+        std::map<int,cv::Mat> first_poses;
         while(!stopCapture){
 
             if(ORB_SLAM2::Sequential::playNextFrame()){
@@ -169,6 +170,8 @@ int main(int argc, char **argv)
                 std::chrono::high_resolution_clock::time_point  start=  std::chrono::high_resolution_clock::now();
 
                 auto pose=SLAM.TrackMonocular(im,frameIndx++);
+                if (!pose.empty())
+                    first_poses.insert({frameIndx,pose.inv()});
                 std::chrono::high_resolution_clock::time_point  end=  std::chrono::high_resolution_clock::now();
                 std::cout << "Time  "<<double(std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count())<< "ms"<<std::endl; ;
                 if(!pose.empty())
@@ -186,6 +189,22 @@ int main(int argc, char **argv)
             system(commd.c_str());
         }
         camera.release();
+
+
+
+        string prePosesFile=string(argv[4]);
+        if(prePosesFile.find_last_of("/")){
+            int n=prePosesFile.find_last_of("/");
+            string pre,post;
+            for(int i=0;i<=n;i++)pre.push_back(prePosesFile[i]);
+            for(int i=n+1;i<prePosesFile.size();i++)post.push_back(prePosesFile[i]);
+            post="first_"+post;
+            prePosesFile=pre+post;
+        }
+        cout<<"Saving pose file "<<prePosesFile<<endl;
+        savePosesToFile(prePosesFile, first_poses);
+
+
         if (stopCapture) return -1;
 
         // Save camera trajectory
